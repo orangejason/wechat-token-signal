@@ -270,6 +270,74 @@ const info = JSON.parse(token.appendix);
 
 ---
 
+## 历史 CA 记录 REST API
+
+除实时 WebSocket 外，提供 REST API 查询群友/群的历史 CA 记录。
+
+**Base URL**: `http://43.254.167.238:3000`
+
+### 群友 CA 记录
+
+```
+GET /api/v1/ca-records/member?qy_wxid={wxid}&days={days}&page={page}&limit={limit}
+```
+
+| 参数 | 必填 | 默认 | 说明 |
+|------|------|------|------|
+| `qy_wxid` | ✅ | - | 群友微信 ID |
+| `days` | ❌ | 7 | 查询天数 |
+| `page` | ❌ | 1 | 页码 |
+| `limit` | ❌ | 20 | 每页条数 |
+
+### 群 CA 记录
+
+```
+GET /api/v1/ca-records/group?qun_id={qun_id}&days={days}&page={page}&limit={limit}
+```
+
+| 参数 | 必填 | 默认 | 说明 |
+|------|------|------|------|
+| `qun_id` | ✅ | - | 微信群 ID（如 `48838324382@chatroom`） |
+| `days` | ❌ | 7 | 查询天数 |
+| `page` | ❌ | 1 | 页码 |
+| `limit` | ❌ | 20 | 每页条数 |
+
+### 响应结构
+
+```json
+{
+  "status": "success",
+  "win_rate_stats": {
+    "total_count": 602,
+    "success_count": 422,
+    "failure_count": 27,
+    "win_rate": 93.99
+  },
+  "data": [{ "token": "...", "symbol": "...", "chain": "...", "market_cap": "...", "qy_wxid": "...", "qy_name": "...", "qun_id": "...", "qun_name": "..." }],
+  "pagination": { "page": 1, "limit": 20, "total": 602, "pages": 31 }
+}
+```
+
+### CA 记录字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 记录 ID |
+| `token` | string | 合约地址 |
+| `chain` | string | 所在链 |
+| `symbol` | string | 代币符号 |
+| `market_cap` | string | 市值 |
+| `risk_score` | string | 风险分数 |
+| `price_change_24h` | string | 24h 涨跌幅 |
+| `increase_data` | number | 收益倍数 |
+| `max_price` | string | 历史最高价 |
+| `qy_wxid` | string | 群友微信 ID |
+| `qy_name` | string | 群友名称 |
+| `qun_id` | string | 群 ID |
+| `qun_name` | string | 群名称 |
+
+---
+
 ## 注意事项
 
 1. **连接稳定性**: 建议实现断线重连（参见上方示例）

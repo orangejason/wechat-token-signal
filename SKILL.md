@@ -28,7 +28,8 @@ metadata:
 4. [字段详细说明](#字段详细说明)
 5. [代码示例](#代码示例)
 6. [数据应用场景](#数据应用场景)
-7. [注意事项](#注意事项)
+7. [历史 CA 记录 REST API](#历史-ca-记录-rest-api)
+8. [注意事项](#注意事项)
 
 ---
 
@@ -516,6 +517,130 @@ asyncio.run(track_community_heat())
 - `fgq`（覆盖群数）反映代币在社群中的扩散速度
 - `qwfc`（全网分享次数）衡量传播广度
 - `sqzs`（社群指数）量化社群热度
+
+---
+
+## 历史 CA 记录 REST API
+
+除了实时 WebSocket 推送外，还提供 REST API 查询群友和群的历史 CA（合约地址）记录，包含历史胜率、代币详情等完整数据。
+
+**Base URL**: `http://43.254.167.238:3000`
+
+### 1. 群友 CA 记录
+
+查询某个群友的历史 CA 查询记录及胜率统计。
+
+```
+GET /api/v1/ca-records/member?qy_wxid={wxid}&days={days}&page={page}&limit={limit}
+```
+
+| 参数 | 类型 | 必填 | 默认 | 说明 |
+|------|------|------|------|------|
+| `qy_wxid` | string | ✅ | - | 群友微信 ID（如 `wxid_xvn49ppq7qfd12`） |
+| `days` | number | ❌ | 7 | 查询天数（建议 7-30） |
+| `page` | number | ❌ | 1 | 页码 |
+| `limit` | number | ❌ | 20 | 每页条数 |
+
+**响应示例**:
+
+```json
+{
+  "status": "success",
+  "win_rate_stats": {
+    "total_count": 602,
+    "success_count": 422,
+    "failure_count": 27,
+    "win_rate": 93.99
+  },
+  "data": [
+    {
+      "id": 905745,
+      "token": "99RtLpiXfU57Xoedwnxg2D6UKjk8BsG3ES876z2kpump",
+      "chain": "solana",
+      "symbol": "BUDDY",
+      "market_cap": "384439.46",
+      "price_change_24h": "1058.8",
+      "risk_score": "55",
+      "holders": 1214,
+      "qy_wxid": "wxid_xvn49ppq7qfd12",
+      "qy_name": "佳奇",
+      "qun_id": "48838324382@chatroom",
+      "qun_name": "招财喵喵喵🐱",
+      "description": "...",
+      "increase_data": -0.19
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 602, "pages": 31 }
+}
+```
+
+### 2. 群 CA 记录
+
+查询某个微信群的历史 CA 查询记录及胜率统计。
+
+```
+GET /api/v1/ca-records/group?qun_id={qun_id}&days={days}&page={page}&limit={limit}
+```
+
+| 参数 | 类型 | 必填 | 默认 | 说明 |
+|------|------|------|------|------|
+| `qun_id` | string | ✅ | - | 微信群 ID（如 `48838324382@chatroom`） |
+| `days` | number | ❌ | 7 | 查询天数 |
+| `page` | number | ❌ | 1 | 页码 |
+| `limit` | number | ❌ | 20 | 每页条数 |
+
+**响应格式与群友 CA 记录相同**，`win_rate_stats` 为该群整体胜率统计。
+
+### 历史记录响应字段
+
+每条 CA 记录包含以下关键字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 记录 ID |
+| `token` | string | 合约地址 |
+| `chain` | string | 所在链（`solana`, `bsc`, `eth`） |
+| `symbol` | string | 代币符号 |
+| `name` | string | 代币名称 |
+| `market_cap` | string | 市值 |
+| `fdv` | string | 全流通市值 |
+| `tvl` | string | 总锁仓值 |
+| `holders` | number | 持有人数 |
+| `risk_score` | string | 风险分数 |
+| `ave_risk_level` | number | 综合风险等级 |
+| `price_change_24h` | string | 24h 涨跌幅（%） |
+| `launch_price` | string | 发射价格 |
+| `current_price_usd` | string | 当前价格 |
+| `increase_data` | number | 收益倍数 |
+| `max_price` | string | 历史最高价 |
+| `qy_wxid` | string | 群友微信 ID |
+| `qy_name` | string | 群友名称 |
+| `qun_id` | string | 群 ID |
+| `qun_name` | string | 群名称 |
+| `description` | string | 代币描述 |
+| `appendix` | object | 附加信息（含 twitter 等链接） |
+| `created_at` | number | 创建时间（Unix） |
+| `updated_at` | number | 更新时间（Unix） |
+
+### 代码示例：获取群历史数据
+
+```javascript
+async function getGroupHistory(qunId, days = 30) {
+  const allRecords = [];
+  let page = 1;
+  while (true) {
+    const url = `http://43.254.167.238:3000/api/v1/ca-records/group?qun_id=${encodeURIComponent(qunId)}&days=${days}&page=${page}&limit=100`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status !== 'success' || !data.data?.length) break;
+    allRecords.push(...data.data);
+    if (page >= data.pagination.pages) break;
+    page++;
+  }
+  console.log(`群 ${qunId}: ${allRecords.length} 条记录, 胜率 ${data.win_rate_stats.win_rate}%`);
+  return allRecords;
+}
+```
 
 ---
 
